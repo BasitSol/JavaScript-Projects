@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Wonderland</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <button id="theme-toggle">🌙</button>
+        <h1>Weather Wonderland</h1>
+        <div class="search-box">
+            <input type="text" id="city-input" placeholder="Enter city name">
+            <button id="search-btn">Search</button>
+        </div>
+        <div class="loading">Loading...</div>
+        <div class="weather-info">
+            <div class="city-name"></div>
+            <div class="temperature"></div>
+            <div class="description"></div>
+            <div class="details">
+                <div class="detail">
+                    <i class="fas fa-wind"></i>
+                    <span class="wind"></span>
+                </div>
+                <div class="detail">
+                    <i class="fas fa-tint"></i>
+                    <span class="humidity"></span>
+                </div>
+                <div class="detail">
+                    <i class="fas fa-sun"></i>
+                    <span class="feels-like"></span>
+                </div>
+            </div>
+        </div>
+        <div class="forecast"></div>
+    </div>
+
+    <script>
+        const apiKey = '2f4dc8deae08263cf79afbf787b5d5e1'; 
+        const cityInput = document.getElementById('city-input');
+        const searchBtn = document.getElementById('search-btn');
+        const weatherInfo = document.querySelector('.weather-info');
+        const forecast = document.querySelector('.forecast');
+        const loading = document.querySelector('.loading');
+        const themeToggle = document.getElementById('theme-toggle');
+
+        searchBtn.addEventListener('click', () => {
+            const city = cityInput.value;
+            if (city) {
+                getWeather(city);
+            }
+        });
+
+        cityInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                const city = cityInput.value;
+                if (city) {
+                    getWeather(city);
+                }
+            }
+        });
+
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            themeToggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        });
+
+        async function getWeather(city) {
+            try {
+                loading.style.display = 'block';
+                weatherInfo.style.display = 'none';
+                forecast.style.display = 'none';
+
+                const weatherResponse = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`);
+                const weatherData = await weatherResponse.json();
+
+                const forecastResponse = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${apiKey}`);
+                const forecastData = await forecastResponse.json();
+
+                displayWeather(weatherData);
+                displayForecast(forecastData);
+
+                loading.style.display = 'none';
+                weatherInfo.style.display = 'block';
+                forecast.style.display = 'flex';
+            } catch (error) {
+                console.error('Error fetching weather data:', error);
+                loading.style.display = 'none';
+                alert('Error fetching weather data. Please try again.');
+            }
+        }
+
+        function displayWeather(data) {
+            const cityName = document.querySelector('.city-name');
+            const temperature = document.querySelector('.temperature');
+            const description = document.querySelector('.description');
+            const wind = document.querySelector('.wind');
+            const humidity = document.querySelector('.humidity');
+            const feelsLike = document.querySelector('.feels-like');
+
+            cityName.textContent = `${data.name}, ${data.sys.country}`;
+            temperature.textContent = `${Math.round(data.main.temp)}°C`;
+            description.textContent = data.weather[0].description;
+            wind.textContent = `Wind: ${data.wind.speed} m/s`;
+            humidity.textContent = `Humidity: ${data.main.humidity}%`;
+            feelsLike.textContent = `Feels like: ${Math.round(data.main.feels_like)}°C`;
+        }
+
+        function displayForecast(data) {
+            forecast.innerHTML = '';
+            const dailyData = data.list.filter(item => item.dt_txt.includes('12:00:00'));
+            
+            dailyData.slice(0, 5).forEach(day => {
+                const date = new Date(day.dt * 1000);
+                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                const temp = Math.round(day.main.temp);
+                const icon = day.weather[0].icon;
+
+                const forecastItem = document.createElement('div');
+                forecastItem.classList.add('forecast-item');
+                forecastItem.innerHTML = `
+                    <div class="forecast-day">${dayName}</div>
+                    <img src="http://openweathermap.org/img/wn/${icon}.png" alt="Weather icon">
+                    <div class="forecast-temp">${temp}°C</div>
+                `;
+                forecast.appendChild(forecastItem);
+            });
+        }
+
+        // Initial weather fetch for a default city
+        getWeather('London');
+    </script>
+</body>
+</html>
